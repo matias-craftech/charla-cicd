@@ -14,3 +14,6 @@ select = ["E", "W", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Suma la raiz del repo al sys.path para que `import app` funcione
+# tambien con `pytest` a secas (no solo con `python -m pytest`).
+pythonpath = ["."]
