@@ -31,7 +31,8 @@ def render_page(
     """
     if deploy_time is None:
         deploy_time = datetime.now(UTC)
-    stamp = deploy_time.strftime("%Y-%m-%d %H:%M UTC")
+    # %Z toma la etiqueta de la propia zona de deploy_time (ej. "Argentina (UTC-3)").
+    stamp = deploy_time.strftime("%Y-%m-%d %H:%M %Z")
     logo = load_logo()
     return f"""<!doctype html>
 <html lang="es">
