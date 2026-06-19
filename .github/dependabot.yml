@@ -1,0 +1,7 @@
+# Mantiene actualizadas las versiones de las GitHub Actions automaticamente.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,0 +1,118 @@
+# Pipeline de la demo "Del commit al deploy".
+# Cada job es una estacion del pipeline que mostramos en la charla:
+#   lint -> test -> build -> deploy (Pages)   y en paralelo   docker (GHCR)
+
+name: CI/CD
+
+on:
+  push:
+    branches: ['**']     # cualquier rama -> corre el chequeo liviano (lint + test)
+  pull_request:
+    branches: [main]
+
+# Por defecto, permisos minimos. Cada job pide solo lo que necesita.
+permissions:
+  contents: read
+
+# Evita que dos deploys a Pages se pisen entre si.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 1) LINT - ¿el codigo respeta el estilo y no tiene errores obvios?
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Ruff (lint + formato)
+        run: |
+          ruff check .
+          ruff format --check .
+
+  # 2) TEST - ¿hace lo que esperamos?
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Pytest
+        run: pytest
+
+  # 3) BUILD - empaqueta el artefacto (el sitio estatico) y lo sube
+  #    Solo en main: en otras ramas alcanza con lint + test.
+  build:
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generar sitio
+        run: python build.py
+      - uses: actions/configure-pages@v5
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  # 4) DEPLOY - publica en GitHub Pages (solo cuando el cambio llega a main)
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write       # publicar en Pages
+      id-token: write    # verificar el origen del deploy (OIDC)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # 5) DOCKER - empaqueta como imagen portable y la pushea a GHCR (opcional)
+  #    "Portable" = corre igual en tu maquina, en la nube o en un homelab.
+  docker:
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write    # pushear la imagen a ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Metadatos de la imagen (tags y labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=
+      - name: Build y push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

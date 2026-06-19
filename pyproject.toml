@@ -1,0 +1,16 @@
+[project]
+name = "del-commit-al-deploy"
+version = "0.1.0"
+description = "Demo de CI/CD: genera un sitio estatico y lo publica en GitHub Pages."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/W: estilo  ·  F: errores reales  ·  I: orden de imports  ·  UP: moderniza  ·  B: bugs comunes
+select = ["E", "W", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,4 @@
+# Herramientas de desarrollo / CI (la app en si no necesita dependencias).
+# Sin pin para que el demo siempre use la ultima; en un proyecto real, pinear.
+ruff
+pytest
