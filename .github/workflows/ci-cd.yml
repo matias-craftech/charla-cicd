@@ -92,6 +92,8 @@ jobs:
       packages: write    # pushear la imagen a ghcr.io
     steps:
       - uses: actions/checkout@v4
+      - name: Habilitar emulacion (para construir imagenes ARM desde un runner amd64)
+        uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - name: Login a GHCR
         uses: docker/login-action@v3
@@ -112,6 +114,9 @@ jobs:
         with:
           context: .
           push: true
+          # amd64 (laptop/servidor) + arm64 (Raspberry con SO de 64 bits).
+          # Si tu Raspberry usa SO de 32 bits, cambia/agrega linux/arm/v7.
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
