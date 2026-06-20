@@ -79,5 +79,3 @@ Se usan majors estables (`checkout@v4`, `setup-python@v5`, `deploy-pages@v4`,
 `build-push-action@v6`, etc.). El ecosistema se mueve rápido, así que está
 incluido `.github/dependabot.yml` para que las versiones se actualicen solas.
 
-
-hola como te va
